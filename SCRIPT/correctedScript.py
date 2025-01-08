@@ -12,8 +12,8 @@ import os
 print("Starting up...")
 stationsMetadata = pd.read_csv(os.getcwd() + '\\metadati_stazioni.csv')
 print("You'll need to type the ID of the station. \n\tOZZANO DELL'EMILIA - 61\n\tCAVRIAGO - 65\n\tMARINA DI RAVENNA - 66\n\tSAN PIETRO CAPOFIUME - 60")
-#stationID = int(input("Your ID: "))
-stationID = 60
+stationID = int(input("Your ID: "))
+#stationID = 60
 folderName = stationsMetadata.loc[stationsMetadata.loc[(stationsMetadata == stationID).any(axis=1)].index[0]].iat[7] 
 
 #site specific values
@@ -45,19 +45,19 @@ import numpy
 import matplotlib.pyplot as plt
 
 
-def prepareFiles(filename, folderName):
-    if filename == 'ERG5' or filename == "raw" or filename == "finapp":
+def prepareFiles(fileName, folderName):
+    if fileName == 'ERG5' or fileName == "raw" or fileName == "finapp":
         separator = ','
     else:
         separator = ';'
     path = os.getcwd()
-    df = pd.read_csv(os.getcwd() + '\\' + folderName + "\\" + filename + '.csv', sep=separator, parse_dates=[0])
+    df = pd.read_csv(os.getcwd() + '\\' + folderName + "\\" + fileName + '.csv', sep=separator, parse_dates=[0])
     start = df[df.columns[0]].min()
     end = df[df.columns[0]].max()
     df = df.drop_duplicates(subset=df.columns[0])
     new_index = pd.date_range(start=start, end=end, freq='h')
     df = df.set_index(df.columns[0]).reindex(new_index)
-    df.to_csv(os.getcwd() + '\\sanPietroCapofiume\\' + filename + '_corretto.csv', index_label='datetime')
+    df.to_csv(os.getcwd() + '\\' + folderName + '\\' + fileName + '_filled.csv', index_label='datetime')
 
 def atmosphericCorrections(data):
     RH_REF = data["RHAVG"].mean()
@@ -115,6 +115,27 @@ def plotDailyData(dailyData):
     fig.savefig(os.getcwd() + '\\' + folderName + '\\RESULTS\\dailyPlot.png')
     return
 
+def plotBiWeeklyData(biWeeklyData):
+    fig, ax = plt.subplots(figsize=(20,5))
+    ax2 = ax.twinx()
+    x = biWeeklyData.index
+    ax2.bar(x, biWeeklyData['PREC'], width = 8, label = "cumulated precipitation", alpha=0.3, edgecolor='black')
+    ax.plot(x, biWeeklyData['soil_moisture'], label = "soil moisture", color = "red")
+    ax.set_ylabel("soil moisture", fontsize = 12)
+    ax2.set_ylabel("precipitation (mm)",fontsize=12)
+    ax.axhline(y=SATURATION, ls='--', label="saturation", color = 'blue')
+    ax.axhline(y=FIELD_CAPACITY, ls='--', label="field capacity", color = 'skyblue')
+    ax.axhline(y=WILTING_POINT, ls='--', label="wilting point", color = 'gold')
+    ax.set_title("SEMIMONTHLY - CRNS soil moisture vs prec",fontsize=18)
+    ax.legend(fontsize=13,ncol = 3, loc='upper right')
+    ax2.legend(fontsize=13, ncol = 3, loc="upper left")
+    ax.tick_params(axis='x', labelsize=12)
+    ax.tick_params(axis='y', labelsize=12)
+    plt.tight_layout()
+    plt.show()
+    fig.savefig(os.getcwd() + '\\' + folderName + '\\RESULTS\\semiMonthlyPlot.png')
+    return
+
 #%%
 
 def main():
@@ -130,10 +151,10 @@ def main():
     prepareFiles('finapp', folderName)
     
     print("Done!\nPreparing dataset...", end="")
-    df1 = pd.read_csv(os.getcwd() + '\\' + folderName + '\\raw_corretto.csv', parse_dates=[0])
-    df2 = pd.read_csv(os.getcwd() + '\\' + folderName + '\\incoming_corretto.csv', parse_dates=[0])
-    df3 = pd.read_csv(os.getcwd() + '\\' + folderName + '\\ERG5_corretto.csv', parse_dates= [0])
-    df4 = pd.read_csv(os.getcwd() + '\\' + folderName + '\\finapp_corretto.csv', parse_dates= [0])
+    df1 = pd.read_csv(os.getcwd() + '\\' + folderName + '\\raw_filled.csv', parse_dates=[0])
+    df2 = pd.read_csv(os.getcwd() + '\\' + folderName + '\\incoming_filled.csv', parse_dates=[0])
+    df3 = pd.read_csv(os.getcwd() + '\\' + folderName + '\\ERG5_filled.csv', parse_dates= [0])
+    df4 = pd.read_csv(os.getcwd() + '\\' + folderName + '\\finapp_filled.csv', parse_dates= [0])
 
     #set datetime index
     df1 = df1.set_index(df1.columns[0])
@@ -161,20 +182,22 @@ def main():
     print(" Done!")
     
     #soil moisture is calculated
-    print("Calculating soil moisture...", end ="\n")
+    print("Calculating soil moisture...", end ="")
     data['soil_moisture'] = (A0/((data["movingAvg_neutrons"]/N0)-A1)-A2-THETA_OFFSET)*BD
     
     #hourly, daily, semi-monthly data
     data.to_csv(os.getcwd() + '\\' + folderName + '\\RESULTS\\hourlyData.csv')
-    #data = data.set_index(pd.DatetimeIndex(data['datetime']))
-    
     dailyData, biWeeklyData = calculateDailyAndBiWeeklyData(data)
     dailyData.to_csv(os.getcwd() + '\\' + folderName + "\\RESULTS\\dailyData.csv")
     biWeeklyData.to_csv(os.getcwd() + '\\' + folderName + "\\RESULTS\\biWeeklyData.csv")
     
+    #plot data (daily and bi-weekly only)
     plotDailyData(dailyData)
+    plotBiWeeklyData(biWeeklyData)
     
-    print("(')> (')> (')> re magi pinguini")
+    print(" Done! \n\nYou can find the hourly, daily and bi-weekly results (.csv and plots) at: " + os.getcwd() + '\\' + folderName + "\\RESULTS")
+    print("Note that the cumulatedPrec variable in the daily data has been calculated with a moving window of the previous 14 days.")
+
 main()
 
 
