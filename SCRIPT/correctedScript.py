@@ -12,19 +12,20 @@ import os
 print("Starting up...")
 stationsMetadata = pd.read_csv(os.getcwd() + '\\metadati_stazioni.csv')
 print("You'll need to type the ID of the station. \n\tOZZANO DELL'EMILIA - 61\n\tCAVRIAGO - 65\n\tMARINA DI RAVENNA - 66\n\tSAN PIETRO CAPOFIUME - 60")
-#stationID = int(input("Your ID: "))
-stationID = 60
-folderName = stationsMetadata.loc[stationsMetadata.loc[(stationsMetadata == stationID).any(axis=1)].index[0]].iat[7] 
+stationID = int(input("Your ID: "))
+#stationID = 61
+station = stationsMetadata.loc[(stationsMetadata == stationID).any(axis=1)]
+folderName = stationsMetadata.loc[station.index[0]].iat[7] 
 
+    
 #site specific values
-P_REF = stationsMetadata.loc[stationsMetadata.loc[(stationsMetadata == stationID).any(axis=1)].index[0]].iat[2]          # DEPENDS ON SITE
-N0 = stationsMetadata.loc[stationsMetadata.loc[(stationsMetadata == stationID).any(axis=1)].index[0]].iat[4]             # DEPENDS ON SITE
-BD = stationsMetadata.loc[stationsMetadata.loc[(stationsMetadata == stationID).any(axis=1)].index[0]].iat[5]             # DEPENDS ON SITE
-THETA_OFFSET = stationsMetadata.loc[stationsMetadata.loc[(stationsMetadata == stationID).any(axis=1)].index[0]].iat[6]   # DEPENDS ON SITE
-SATURATION = stationsMetadata.loc[stationsMetadata.loc[(stationsMetadata == stationID).any(axis=1)].index[0]].iat[8]   # DEPENDS ON SITE
-FIELD_CAPACITY = stationsMetadata.loc[stationsMetadata.loc[(stationsMetadata == stationID).any(axis=1)].index[0]].iat[9]   # DEPENDS ON SITE
-WILTING_POINT = stationsMetadata.loc[stationsMetadata.loc[(stationsMetadata == stationID).any(axis=1)].index[0]].iat[10]   # DEPENDS ON SITE
-
+P_REF = stationsMetadata.loc[station.index[0]].iat[2]            # DEPENDS ON SITE
+N0 = stationsMetadata.loc[station.index[0]].iat[4]               # DEPENDS ON SITE
+BD = stationsMetadata.loc[station.index[0]].iat[5]               # DEPENDS ON SITE
+THETA_OFFSET = stationsMetadata.loc[station.index[0]].iat[6]     # DEPENDS ON SITE
+SATURATION = stationsMetadata.loc[station.index[0]].iat[8]       # DEPENDS ON SITE
+FIELD_CAPACITY = stationsMetadata.loc[station.index[0]].iat[9]   # DEPENDS ON SITE
+WILTING_POINT = stationsMetadata.loc[station.index[0]].iat[10]   # DEPENDS ON SITE
 
 #atmospheric corrections
 NINC_REF = 150
@@ -102,7 +103,8 @@ def plotDailyData(dailyData):
     ax2 = ax.twinx()
     x = dailyData.index
     ax2.bar(x, dailyData['cumulatedPrec'], width = 1.3, label = "cumulated precipitation", alpha=0.3)
-    ax.plot(x, dailyData['soil_moisture'], label = "soil moisture", color = "red")
+    ax.plot(x, dailyData['soil_moisture'], label = "soil moisture (jungfraujoch)", color = "red")
+    ax.plot(x, dailyData['soil_moisture_volumetric[m3/m3]'], label = "soil moisture (muons)", color  = 'green')
     ax.set_ylabel("soil moisture", fontsize = 12)
     ax2.set_ylabel("precipitation (mm)",fontsize=12)
     ax.axhline(y=SATURATION, ls='--', label="saturation", color = 'blue')
@@ -123,7 +125,8 @@ def plotBiWeeklyData(biWeeklyData):
     ax2 = ax.twinx()
     x = biWeeklyData.index
     ax2.bar(x, biWeeklyData['PREC'], width = 8, label = "cumulated precipitation", alpha=0.3, edgecolor='black')
-    ax.plot(x, biWeeklyData['soil_moisture'], label = "soil moisture", color = "red")
+    ax.plot(x, biWeeklyData['soil_moisture'], label = "soil moisture(jungfraujoch)", color = "red")
+    ax.plot(x, biWeeklyData['soil_moisture_volumetric[m3/m3]'], label = "soil moisture (muons)", color  = 'green')
     ax.set_ylabel("soil moisture", fontsize = 12)
     ax2.set_ylabel("precipitation (mm)",fontsize=12)
     ax.axhline(y=SATURATION, ls='--', label="saturation", color = 'blue')
@@ -194,7 +197,7 @@ def main():
     print("Calculating soil moisture...", end ="")
     data['soil_moisture'] = (A0/((data["movingAvg_neutrons"]/N0)-A1)-A2-THETA_OFFSET)*BD
     
-    #hourly, daily, semi-monthly data
+    #save hourly, daily, semi-monthly data
     if not (os.path.isdir(os.getcwd() + '\\' + folderName + '\\RESULTS')):
         os.makedirs(os.getcwd() + '\\' + folderName + '\\RESULTS')
         
