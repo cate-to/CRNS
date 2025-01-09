@@ -186,6 +186,9 @@ def main():
     data['soil_moisture'] = (A0/((data["movingAvg_neutrons"]/N0)-A1)-A2-THETA_OFFSET)*BD
     
     #hourly, daily, semi-monthly data
+    if not (os.path.isdir(os.getcwd() + '\\' + folderName + '\\RESULTS')):
+        os.makedirs(os.getcwd() + '\\' + folderName + '\\RESULTS')
+        
     data.to_csv(os.getcwd() + '\\' + folderName + '\\RESULTS\\hourlyData.csv')
     dailyData, biWeeklyData = calculateDailyAndBiWeeklyData(data)
     dailyData.to_csv(os.getcwd() + '\\' + folderName + "\\RESULTS\\dailyData.csv")
