@@ -12,8 +12,8 @@ import os
 print("Starting up...")
 stationsMetadata = pd.read_csv(os.getcwd() + '\\metadati_stazioni.csv')
 print("You'll need to type the ID of the station. \n\tOZZANO DELL'EMILIA - 61\n\tCAVRIAGO - 65\n\tMARINA DI RAVENNA - 66\n\tSAN PIETRO CAPOFIUME - 60")
-stationID = int(input("Your ID: "))
-#stationID = 60
+#stationID = int(input("Your ID: "))
+stationID = 60
 folderName = stationsMetadata.loc[stationsMetadata.loc[(stationsMetadata == stationID).any(axis=1)].index[0]].iat[7] 
 
 #site specific values
@@ -50,7 +50,9 @@ def prepareFiles(fileName, folderName):
         separator = ','
     else:
         separator = ';'
-    path = os.getcwd()
+    if not (os.path.exists(os.getcwd() + '\\' + folderName + '\\' + fileName + '.csv')):
+            print(" Error! Couldn't find the " + fileName + '.csv' + " input files in the folder.")
+            return 0;
     df = pd.read_csv(os.getcwd() + '\\' + folderName + "\\" + fileName + '.csv', sep=separator, parse_dates=[0])
     start = df[df.columns[0]].min()
     end = df[df.columns[0]].max()
@@ -58,6 +60,7 @@ def prepareFiles(fileName, folderName):
     new_index = pd.date_range(start=start, end=end, freq='h')
     df = df.set_index(df.columns[0]).reindex(new_index)
     df.to_csv(os.getcwd() + '\\' + folderName + '\\' + fileName + '_filled.csv', index_label='datetime')
+    return 1;
 
 def atmosphericCorrections(data):
     RH_REF = data["RHAVG"].mean()
@@ -139,18 +142,24 @@ def plotBiWeeklyData(biWeeklyData):
 #%%
 
 def main():
-    print("You'll need three types of file in the same folder as this script named: \n\traw.csv (contains raw Finapp data)\n\tincoming.csv (downloaded from https://www.nmdb.eu/nest/search.php)\n\tERG5.csv (ERG5 data relative to cell)\n\tfinapp.csv (corrected Finapp soil moisture data)\nCheck that they're there and press any key to continue. \n")
+    print("You'll need three types of file in the same folder as this script named: \n\traw.csv (contains raw Finapp data)\n\tincoming.csv (downloaded from https://www.nmdb.eu/nest/search.php)\n\tERG5.csv (ERG5 data relative to cell)\n\tfinapp.csv (corrected Finapp soil moisture data)\n")
+    #input("Check that they're there and press any key to continue. \n")
     
     print("Reading and tidying data...", end="")
 
     #fill holes in datasets
     #datasets used are: raw data from finapp, elaborated data from finapp, incoming data from https://www.nmdb.eu/nest/search.php , hourly ERG5 data (prec, tavg, RH)    
-    prepareFiles('raw', folderName)
-    prepareFiles('incoming', folderName)
-    prepareFiles('ERG5', folderName)
-    prepareFiles('finapp', folderName)
+    if (prepareFiles('raw', folderName) == 0 or prepareFiles('incoming', folderName) == 0 or 
+        prepareFiles('ERG5', folderName) == 0 or prepareFiles('finapp', folderName) == 0):
+        return;
     
     print("Done!\nPreparing dataset...", end="")
+    if not (os.path.exists(os.getcwd() + '\\' + folderName + '\\raw_filled.csv') or 
+            os.path.exists(os.getcwd() + '\\' + folderName + '\\incoming_filled.csv') or 
+            os.path.exists(os.getcwd() + '\\' + folderName + '\\ERG5_filled.csv') or
+            os.path.exists(os.getcwd() + '\\' + folderName + '\\finapp_filled.csv')) :
+        print(" Error! The cleaned up files don't exist.")
+    
     df1 = pd.read_csv(os.getcwd() + '\\' + folderName + '\\raw_filled.csv', parse_dates=[0])
     df2 = pd.read_csv(os.getcwd() + '\\' + folderName + '\\incoming_filled.csv', parse_dates=[0])
     df3 = pd.read_csv(os.getcwd() + '\\' + folderName + '\\ERG5_filled.csv', parse_dates= [0])
