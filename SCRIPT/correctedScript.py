@@ -47,7 +47,7 @@ import matplotlib.pyplot as plt
 
 
 def prepareFiles(fileName, folderName):
-    if fileName == 'ERG5' or fileName == "raw" or fileName == "finapp":
+    if fileName == 'ERG5' or fileName == 'raw' or fileName == "finapp":
         separator = ','
     else:
         separator = ';'
@@ -65,6 +65,7 @@ def prepareFiles(fileName, folderName):
 
 def atmosphericCorrections(data):
     RH_REF = data["RHAVG"].mean()
+    NINC_REF = data["incoming"].mean()
     data["incoming_correction"] = NINC_REF/data["incoming"]
     data["press_correction"] = numpy.exp(BETA*(data["PRESS(hPa)"]-P_REF))
     #data['AH']=data['PRESS(hPa)']*100/(461.5*(data['TAVG']+273,15))
@@ -98,7 +99,7 @@ def calculateDailyAndBiWeeklyData(data):
     
     return dailyData, biWeeklyData
 
-def plotDailyData(dailyData):
+def plotDailyData(dailyData, folderName):
     fig, ax = plt.subplots(figsize=(30,5))
     ax2 = ax.twinx()
     x = dailyData.index
@@ -110,7 +111,7 @@ def plotDailyData(dailyData):
     ax.axhline(y=SATURATION, ls='--', label="saturation", color = 'blue')
     ax.axhline(y=FIELD_CAPACITY, ls='--', label="field capacity", color = 'skyblue')
     ax.axhline(y=WILTING_POINT, ls='--', label="wilting point", color = 'gold')
-    ax.set_title("DAILY - CRNS soil moisture vs prec",fontsize=18)
+    ax.set_title("DAILY - CRNS soil moisture vs prec - " + folderName,fontsize=18)
     ax.legend(fontsize=13,ncol = 3, loc='upper right')
     ax2.legend(fontsize=13, ncol = 3, loc="upper left")
     ax.tick_params(axis='x', labelsize=12)
@@ -120,7 +121,7 @@ def plotDailyData(dailyData):
     fig.savefig(os.getcwd() + '\\' + folderName + '\\RESULTS\\dailyPlot.png')
     return
 
-def plotBiWeeklyData(biWeeklyData):
+def plotBiWeeklyData(biWeeklyData, folderName):
     fig, ax = plt.subplots(figsize=(20,5))
     ax2 = ax.twinx()
     x = biWeeklyData.index
@@ -132,7 +133,7 @@ def plotBiWeeklyData(biWeeklyData):
     ax.axhline(y=SATURATION, ls='--', label="saturation", color = 'blue')
     ax.axhline(y=FIELD_CAPACITY, ls='--', label="field capacity", color = 'skyblue')
     ax.axhline(y=WILTING_POINT, ls='--', label="wilting point", color = 'gold')
-    ax.set_title("SEMIMONTHLY - CRNS soil moisture vs prec",fontsize=18)
+    ax.set_title("SEMIMONTHLY - CRNS soil moisture vs prec - " + folderName,fontsize=18)
     ax.legend(fontsize=13,ncol = 3, loc='upper right')
     ax2.legend(fontsize=13, ncol = 3, loc="upper left")
     ax.tick_params(axis='x', labelsize=12)
@@ -207,8 +208,8 @@ def main():
     biWeeklyData.to_csv(os.getcwd() + '\\' + folderName + "\\RESULTS\\biWeeklyData.csv")
     
     #plot data (daily and bi-weekly only)
-    plotDailyData(dailyData)
-    plotBiWeeklyData(biWeeklyData)
+    plotDailyData(dailyData, folderName)
+    plotBiWeeklyData(biWeeklyData, folderName)
     
     print(" Done! \n\nYou can find the hourly, daily and bi-weekly results (.csv and plots) at: " + os.getcwd() + '\\' + folderName + "\\RESULTS")
     print("Note that the cumulatedPrec variable in the daily data has been calculated with a moving window of the previous 14 days.")
