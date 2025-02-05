@@ -47,7 +47,7 @@ import matplotlib.pyplot as plt
 
 
 def prepareFiles(fileName, folderName):
-    if fileName == 'ERG5' or fileName == 'raw' or fileName == "finapp":
+    if fileName == 'ERG5' or fileName == "finapp":
         separator = ','
     else:
         separator = ';'
@@ -71,7 +71,8 @@ def atmosphericCorrections(data):
     #data['AH']=data['PRESS(hPa)']*100/(461.5*(data['TAVG']+273,15))
     #data["RH_correction"] = (1+ALPHA*(data["AH"]/100-RH_REF/100))
     data['RH_correction'] = 1
-    data["corrected_neutrons"] = data["uncorrectedNeutrons"]*data["incoming_correction"]*data["press_correction"]*data["RH_correction"]
+    #data["corrected_neutrons"] = data["uncorrectedNeutrons"]*data["incoming_correction"]*data["press_correction"]*data["RH_correction"]
+    data["corrected_neutrons"] = data["pressureCorrectedNeutrons"]*data["incoming_correction"]*data["RH_correction"]
     data['movingAvg_neutrons'] = data['corrected_neutrons'].rolling(24, center=True).mean()
 
 def calculateDailyAndBiWeeklyData(data):
@@ -81,8 +82,11 @@ def calculateDailyAndBiWeeklyData(data):
     biWeeklyData = data.copy()
     dailyPrec = data.copy()
     biWeeklyPrec = dailyPrec.copy()
-    dailyPrec = dailyPrec.drop(columns=['uncorrectedNeutrons', 'incoming', 'TAVG', 'RHAVG', 'soil_moisture_volumetric[m3/m3]', 'soil_moisture_gravimetric[g/g]', 'pressureCorrectedNeutrons', 'PRESS(hPa)', 'incoming_correction', 'press_correction', 'RH_correction', 'corrected_neutrons', 'movingAvg_neutrons', 'soil_moisture'])#drop unused columns
-    biWeeklyPrec = biWeeklyPrec.drop(columns=['uncorrectedNeutrons', 'incoming', 'TAVG', 'RHAVG', 'soil_moisture_volumetric[m3/m3]', 'soil_moisture_gravimetric[g/g]', 'pressureCorrectedNeutrons', 'PRESS(hPa)', 'incoming_correction', 'press_correction', 'RH_correction', 'corrected_neutrons', 'movingAvg_neutrons', 'soil_moisture'])#drop unused columns
+    #dailyPrec = dailyPrec.drop(columns=['uncorrectedNeutrons', 'incoming', 'TAVG', 'RHAVG', 'soil_moisture_volumetric[m3/m3]', 'soil_moisture_gravimetric[g/g]', 'pressureCorrectedNeutrons', 'PRESS(hPa)', 'incoming_correction', 'press_correction', 'RH_correction', 'corrected_neutrons', 'movingAvg_neutrons', 'soil_moisture'])#drop unused columns
+    #biWeeklyPrec = biWeeklyPrec.drop(columns=['uncorrectedNeutrons', 'incoming', 'TAVG', 'RHAVG', 'soil_moisture_volumetric[m3/m3]', 'soil_moisture_gravimetric[g/g]', 'pressureCorrectedNeutrons', 'PRESS(hPa)', 'incoming_correction', 'press_correction', 'RH_correction', 'corrected_neutrons', 'movingAvg_neutrons', 'soil_moisture'])#drop unused columns
+    dailyPrec = dailyPrec.drop(columns=['pressureCorrectedNeutrons', 'incoming', 'TAVG', 'RHAVG', 'soil_moisture_volumetric[m3/m3]', 'soil_moisture_gravimetric[g/g]', 'pressureCorrectedNeutrons', 'PRESS(hPa)', 'incoming_correction', 'press_correction', 'RH_correction', 'corrected_neutrons', 'movingAvg_neutrons', 'soil_moisture'])#drop unused columns
+    biWeeklyPrec = biWeeklyPrec.drop(columns=['pressureCorrectedNeutrons', 'incoming', 'TAVG', 'RHAVG', 'soil_moisture_volumetric[m3/m3]', 'soil_moisture_gravimetric[g/g]', 'pressureCorrectedNeutrons', 'PRESS(hPa)', 'incoming_correction', 'press_correction', 'RH_correction', 'corrected_neutrons', 'movingAvg_neutrons', 'soil_moisture'])#drop unused columns
+
     del(dailyData['PREC'])
     del(biWeeklyData['PREC'])
     
@@ -153,41 +157,36 @@ def main():
 
     #fill holes in datasets
     #datasets used are: raw data from finapp, elaborated data from finapp, incoming data from https://www.nmdb.eu/nest/search.php , hourly ERG5 data (prec, tavg, RH)    
-    if (prepareFiles('raw', folderName) == 0 or prepareFiles('incoming', folderName) == 0 or 
-        prepareFiles('ERG5', folderName) == 0 or prepareFiles('finapp', folderName) == 0):
+    if (prepareFiles('incoming', folderName) == 0 or 
+        prepareFiles('ERG5', folderName) == 0 or 
+        prepareFiles('finapp', folderName) == 0):
         return;
     
     print("Done!\nPreparing dataset...", end="")
-    if not (os.path.exists(os.getcwd() + '\\' + folderName + '\\raw_filled.csv') or 
-            os.path.exists(os.getcwd() + '\\' + folderName + '\\incoming_filled.csv') or 
+    if not (os.path.exists(os.getcwd() + '\\' + folderName + '\\incoming_filled.csv') or 
             os.path.exists(os.getcwd() + '\\' + folderName + '\\ERG5_filled.csv') or
             os.path.exists(os.getcwd() + '\\' + folderName + '\\finapp_filled.csv')) :
         print(" Error! The cleaned up files don't exist.")
     
-    df1 = pd.read_csv(os.getcwd() + '\\' + folderName + '\\raw_filled.csv', parse_dates=[0])
-    df2 = pd.read_csv(os.getcwd() + '\\' + folderName + '\\incoming_filled.csv', parse_dates=[0])
-    df3 = pd.read_csv(os.getcwd() + '\\' + folderName + '\\ERG5_filled.csv', parse_dates= [0])
-    df4 = pd.read_csv(os.getcwd() + '\\' + folderName + '\\finapp_filled.csv', parse_dates= [0])
+    df1 = pd.read_csv(os.getcwd() + '\\' + folderName + '\\incoming_filled.csv', parse_dates=[0])
+    df2 = pd.read_csv(os.getcwd() + '\\' + folderName + '\\ERG5_filled.csv', parse_dates= [0])
+    df3 = pd.read_csv(os.getcwd() + '\\' + folderName + '\\finapp_filled.csv', parse_dates= [0])
 
     #set datetime index
     df1 = df1.set_index(df1.columns[0])
     df2 = df2.set_index(df2.columns[0])
     df3 = df3.set_index(df3.columns[0])
-    df4 = df4.set_index(df4.columns[0])
     
     #drop unused columns before merging
-    df1 = df1.drop(columns=['muons','gamma', 'integration_time(s)', 'V_in(Volt)', 'temperature_in(°C)', 'temperature_ext(°C)', 'ur(%)', 'pressure(hPa)'])
-    df3 = df3.drop(columns=['RAD', 'W_SCAL_INT', 'W_VEC_DIR', 'W_VEC_INT', 'LEAFW', 'ET0'])
-    df4 = df4.drop(columns=['muons','gamma', 'integration_time(s)', 'V_in(Volt)', 'temperature_in(°C)', 'temperature_ext(°C)', 'ur(%)'])
-    df1.rename(columns={"neutrons":"uncorrectedNeutrons"}, inplace=True)
-    df2.rename(columns={df2.columns[0]:"incoming"}, inplace=True)
-    df4.rename(columns={"neutrons":"pressureCorrectedNeutrons", "pressure(hPa)":"PRESS(hPa)"}, inplace=True)
+    df2 = df2.drop(columns=['RAD', 'W_SCAL_INT', 'W_VEC_DIR', 'W_VEC_INT', 'LEAFW', 'ET0'])
+    df3 = df3.drop(columns=['muons','gamma', 'integration_time(s)', 'V_in(Volt)', 'temperature_in(°C)', 'temperature_ext(°C)', 'ur(%)'])
+    df1.rename(columns={df1.columns[0]:"incoming"}, inplace=True)
+    df3.rename(columns={"neutrons":"pressureCorrectedNeutrons", "pressure(hPa)":"PRESS(hPa)"}, inplace=True)
 
     
     #merge datasets to obtain a single one
     data = pd.merge(df1, df2, how = 'inner', left_index = True, right_index = True)
     data = pd.merge(data, df3, how = 'inner', left_index = True, right_index = True)
-    data = pd.merge(data, df4, how = 'inner', left_index = True, right_index = True)
     
     #atmospheric corrections are applied
     print(" Done!\nCalculating atmospheric corrections and corrected neutron count...", end ="")
