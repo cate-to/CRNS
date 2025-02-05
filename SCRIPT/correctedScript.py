@@ -150,7 +150,7 @@ def plotBiWeeklyData(biWeeklyData, folderName):
 #%%
 
 def main():
-    print("You'll need three types of file in the same folder as this script named: \n\traw.csv (contains raw Finapp data)\n\tincoming.csv (downloaded from https://www.nmdb.eu/nest/search.php)\n\tERG5.csv (ERG5 data relative to cell)\n\tfinapp.csv (corrected Finapp soil moisture data)\n")
+    print("You'll need three types of file in the same folder as this script named: \n\tincoming.csv (downloaded from https://www.nmdb.eu/nest/search.php)\n\tERG5.csv (ERG5 data relative to cell)\n\tfinapp.csv (Finapp data)\n")
     #input("Check that they're there and press any key to continue. \n")
     
     print("Reading and tidying data...", end="")
