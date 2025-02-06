@@ -63,6 +63,15 @@ def prepareFiles(fileName, folderName):
     df.to_csv(os.getcwd() + '\\' + folderName + '\\' + fileName + '_filled.csv', index_label='datetime')
     return 1;
 
+def prepareDataset(df, fileName, folderName):
+    start = df[df.columns[0]].min()
+    end = df[df.columns[0]].max()
+    df = df.drop_duplicates(subset=df.columns[0])
+    #new_index = pd.date_range(start=start, end=end, freq='h')
+    df = df.set_index(df.columns[0])
+    df.to_csv(os.getcwd() + '\\' + folderName + '\\' + fileName + '_filled.csv', index_label='datetime')
+    return df;
+
 def atmosphericCorrections(data):
     RH_REF = data["RHAVG"].mean()
     NINC_REF = data["incoming"].mean()
@@ -154,18 +163,20 @@ def main():
     #input("Check that they're there and press any key to continue. \n")
     
     print("Reading and tidying data...", end="")
+    
+    df3 = pd.read_csv("http://cloud.finapptech.com/finapp/api/v2/getCSV_id.php?ID=" + str(stationID) + "&D=1&SM=1&token=v3s364")
+    df3 = prepareDataset(df3, 'finapp', folderName)
 
     #fill holes in datasets
     #datasets used are: raw data from finapp, elaborated data from finapp, incoming data from https://www.nmdb.eu/nest/search.php , hourly ERG5 data (prec, tavg, RH)    
     if (prepareFiles('incoming', folderName) == 0 or 
-        prepareFiles('ERG5', folderName) == 0 or 
-        prepareFiles('finapp', folderName) == 0):
+        prepareFiles('ERG5', folderName) == 0):
         return;
+    
     
     print("Done!\nPreparing dataset...", end="")
     if not (os.path.exists(os.getcwd() + '\\' + folderName + '\\incoming_filled.csv') or 
-            os.path.exists(os.getcwd() + '\\' + folderName + '\\ERG5_filled.csv') or
-            os.path.exists(os.getcwd() + '\\' + folderName + '\\finapp_filled.csv')) :
+            os.path.exists(os.getcwd() + '\\' + folderName + '\\ERG5_filled.csv')) :
         print(" Error! The cleaned up files don't exist.")
     
     df1 = pd.read_csv(os.getcwd() + '\\' + folderName + '\\incoming_filled.csv', parse_dates=[0])
