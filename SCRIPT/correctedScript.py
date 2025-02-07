@@ -8,6 +8,14 @@ Created on Fri Jan  3 11:14:50 2025
 #CONSTANTS 
 import pandas as pd
 import os
+import csv
+import numpy
+import matplotlib.pyplot as plt
+import io
+import zipfile
+import requests
+
+
 
 print("Starting up...")
 stationsMetadata = pd.read_csv(os.getcwd() + '\\metadati_stazioni.csv')
@@ -15,6 +23,8 @@ print("You'll need to type the ID of the station. \n\tOZZANO DELL'EMILIA - 61\n\
 stationID = int(input("Your ID: "))
 #stationID = 61
 station = stationsMetadata.loc[(stationsMetadata == stationID).any(axis=1)]
+if (len(station) == 0):
+    print("Invalid station ID")
 folderName = stationsMetadata.loc[station.index[0]].iat[7] 
 
     
@@ -41,12 +51,10 @@ A2 = 0.115
 ###################################################
 
 
-import csv
-import numpy
-import matplotlib.pyplot as plt
 
 
-def prepareFiles(fileName, folderName):
+
+def prepareFiles(fileName):
     if fileName == 'ERG5' or fileName == "finapp":
         separator = ','
     else:
@@ -156,23 +164,86 @@ def plotBiWeeklyData(biWeeklyData, folderName):
     fig.savefig(os.getcwd() + '\\' + folderName + '\\RESULTS\\semiMonthlyPlot.png')
     return
 
+def getERG5data():
+    ERG5cellCode = ''
+    df = pd.DataFrame()
+    
+    if (stationID == 60):
+        ERG5cellCode = '01572'
+    elif (stationID == 61):
+        ERG5cellCode = '01503'
+    elif (stationID == 65):
+        ERG5cellCode = '00897'
+    elif (stationID == 66):
+        ERG5cellCode = '02021'
+    else:
+        return 0, df;
+    
+    if not os.path.exists("c:/Github/CRNS/SCRIPT/" + folderName + "/rawERG5data"): 
+      os.makedirs("c:/Github/CRNS/SCRIPT/" + folderName + "/rawERG5data") 
+    
+    yearsVector = ['2023', '2024', '2025']
+    for year in yearsVector:
+        zipurl = f"https://dati-simc.arpae.it/opendata/erg5v2/timeseries/" + ERG5cellCode + "/" + ERG5cellCode + "_" + year + ".zip"
+        with requests.get(zipurl, stream=True) as req:
+            req.raise_for_status()
+            zfile = zipfile.ZipFile(io.BytesIO(req.content))
+                
+            fileToExtract = ERG5cellCode + "_" + year + "_h.csv"
+    
+            zfile.extract(fileToExtract, path="c:/Github/CRNS/SCRIPT/" + folderName + "/rawERG5data")
+    
+    if not (os.path.exists("c:/Github/CRNS/SCRIPT/" + folderName + "/rawERG5data/" + ERG5cellCode + "_2023_h.csv") or
+            os.path.exists("c:/Github/CRNS/SCRIPT/" + folderName + "/rawERG5data/" + ERG5cellCode + "_2024_h.csv") or
+            os.path.exists("c:/Github/CRNS/SCRIPT/" + folderName + "/rawERG5data/" + ERG5cellCode + "_2025_h.csv")):
+        print("Something went wrong while downloading ERG5 data.")
+        return 0, df;
+    
+    #reading the .csv files and creating a single dataframe
+    df = pd.read_csv("c:/Github/CRNS/SCRIPT/" + folderName + "/rawERG5data/" + ERG5cellCode + "_2023_h.csv")
+    df = pd.concat([df, pd.read_csv("c:/Github/CRNS/SCRIPT/" + folderName + "/rawERG5data/" + ERG5cellCode + "_2024_h.csv")])
+    df = pd.concat([df,pd.read_csv("c:/Github/CRNS/SCRIPT/" + folderName + "/rawERG5data/" + ERG5cellCode + "_2025_h.csv")])
+    
+    df = df.set_index(df.columns[0])
+    
+    df.to_csv(os.getcwd() + '\\' + folderName + '\\ERG5.csv', index_label='datetime')
+    
+    return 1, df
+
 #%%
 
 def main():
-    print("You'll need three types of file in the same folder as this script named: \n\tincoming.csv (downloaded from https://www.nmdb.eu/nest/search.php)\n\tERG5.csv (ERG5 data relative to cell)\n\tfinapp.csv (Finapp data)\n")
-    #input("Check that they're there and press any key to continue. \n")
+    print("\nYou'll need two types of file in the same folder as this script named: \n\tincoming.csv (downloaded from https://www.nmdb.eu/nest/search.php)\n\tfinapp.csv (Finapp data)\n")
+    print("ERG5 data will be downloaded automatically. If an error occurs, ERG5 can also be read from the local folder and it needs to be downloaded from https://dati.arpae.it/dataset/erg5-interpolazione-su-griglia-di-dati-meteo and correctly formatted.\n")
+    erg5Flag = input("Do you want to try and download the ERG5 data? (Y/N) ")
     
-    print("Reading and tidying data...", end="")
     
-    df3 = pd.read_csv("http://cloud.finapptech.com/finapp/api/v2/getCSV_id.php?ID=" + str(stationID) + "&D=1&SM=1&token=v3s364")
-    df3 = prepareDataset(df3, 'finapp', folderName)
+    print("Reading and tidying data...", end=" ")
+    
+    #get finapp data (NOT POSSIBLE WITHOUT VPN)
+    #df3 = pd.read_csv("http://cloud.finapptech.com/finapp/api/v2/getCSV_id.php?ID=" + str(stationID) + "&D=1&SM=1&token=v3s364")
+    #df3 = prepareDataset(df3, 'finapp', folderName)
+
+    #get ERG5 data
+    if (erg5Flag == 'Y' or erg5Flag == 'y'): 
+        flag, df1 = getERG5data()
+        if (flag == 0):
+            print("Something went wrong while downloading ERG5 data.")
+            return;
+    else:
+        print("Looking for an ERG5.csv file in the " + os.getcwd() + '\\' + folderName + ' folder.')
+        if not (os.path.exists(os.getcwd() + '\\' + folderName + '\\ERG5.csv')):
+            print(" Couldn't file local ERG5.csv file. Please download it manually from https://dati.arpae.it/dataset/erg5-interpolazione-su-griglia-di-dati-meteo")
+            return;
+    
+    
 
     #fill holes in datasets
     #datasets used are: raw data from finapp, elaborated data from finapp, incoming data from https://www.nmdb.eu/nest/search.php , hourly ERG5 data (prec, tavg, RH)    
-    if (prepareFiles('incoming', folderName) == 0 or 
-        prepareFiles('ERG5', folderName) == 0):
+    if (prepareFiles('finapp') == 0 or
+        prepareFiles('incoming') == 0 or 
+        prepareFiles('ERG5') == 0):
         return;
-    
     
     print("Done!\nPreparing dataset...", end="")
     if not (os.path.exists(os.getcwd() + '\\' + folderName + '\\incoming_filled.csv') or 
