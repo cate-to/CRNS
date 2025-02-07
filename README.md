@@ -4,7 +4,7 @@ Python scripts to convert and plot CRNS data to soil moisture values.
 
 ## Managing input data
 
-1. Each station must have a corresponding row inside C:\Github\CRNS\SCRIPT\metadati_stazioni.csv and a folder must be created accordingly to the folderName field in that file. Such folder must contain all the data necessary.
+1. Each station must have a corresponding row inside the metadati_stazioni.csv file and a folder must be created accordingly to the folderName field in that file. Such folder must contain all the data necessary. Both the file and the folder must be placed inside the SCRIPT folder.
 2. Necessary data is:
 	1. finapp.csv - CRNS data. Download from the [Finapp cloud](http://cloud.finapptech.com/finapp/api/v2/getCSV_id.php?ID=61&D=1&SM=1&token=v3s364). Change the 'ID=61' in the url based on the station ID (from metadati_stazioni.csv).
 	2. incoming.csv - data from the Jungfraujoch station. Download from [the nmdb website](https://www.nmdb.eu/nest/search.php).
